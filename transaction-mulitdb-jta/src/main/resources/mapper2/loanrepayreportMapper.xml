@@ -1,0 +1,42 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    在Mybatis中, 映射文件中的 namespace 是用于绑定 Dao 接口的, 即面向接口编程
+    当你的 namespace 绑定接口后, 你可以不用写接口实现类, Mybatis会通过该绑定自动帮你找到对应要执行的SQL语句
+    DAO接口中的方法名与映射文件中的SQL语句的ID一一对应
+-->
+<mapper namespace="com.transaction.dao2.Transaction2Dao">
+
+    <resultMap id="tempAMap" type="com.transaction.pojo.TempA">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="school" property="school"/>
+    </resultMap>
+
+    <resultMap id="tempBMap" type="com.transaction.pojo.TempB">
+        <id column="id" property="id"/>
+        <result column="company" property="company"/>
+        <result column="position" property="position"/>
+    </resultMap>
+
+    <select id="getTempA" resultMap="tempAMap">
+        select * from temp_a
+    </select>
+
+    <select id="getTempB" resultMap="tempBMap">
+        select * from temp_b
+    </select>
+
+    <insert id="insertTempA">
+        insert into temp_a (id, name, school)
+          values (#{id}, #{name}, #{school})
+    </insert>
+
+    <insert id="insertTempB">
+        insert into temp_b (id, company, position)
+          values (#{id}, #{company}, #{position})
+    </insert>
+
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	   http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+	   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--
+        spring就会去自动扫描base-package对应的路径或者该路径的子包下面的java文件,
+        如果扫描到文件中带有@Controller,@Service,@Component,@Repository等这些注解的类,则把这些类注册为bean
+    -->
+    <context:component-scan base-package="com.transaction" />
+
+    <!--
+        如果没有<mvc:annotation-driven/>，那么所有的Controller可能就没有解析，所有当有请求时候都没有匹配的处理请求类，就都去<mvc:default-servlet-handler/>即default servlet处理了。
+        添加上<mvc:annotation-driven/>后，相应的do请求被Controller处理，而静态资源因为没有相应的Controller就会被default servlet处理
+        <mvc:annotation-driven>会自动注册RequestMappingHandlerMapping与RequestMappingHandlerAdapter两个Bean,这是Spring MVC为@Controller分发请求所必需的
+        要使用spring mvc中的@Controller注解，就必须要配置<mvc:annotation-driven />，否则org.springframework.web.servlet.DispatcherServlet无法找到控制器并把请求分发到控制器
+    -->
+    <mvc:annotation-driven />
+
+    <!--
+        编程式即采用注解的方式,事务扫描开始(开启注解@Tranctional)
+        如果将@Transactional放到Controller上, 那Spring只会去检查所有Controller上面的注释, 不会再去检查Service上的注释, 所以一般不推荐讲@Transactional放在Controller上, 一般需要放在Service上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="false" />
+        基于JDK动态代理, 可以将@Transactional放置在接口（抽象类或抽象方法）和具体类（实现类或实现方法）上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
+        基于CGLIB类代理, 只能将@Transactional放置在具体类（实现类或实现方法）上
+    -->
+    <tx:annotation-driven />
+
+    <!--
+        Spring 的 事务管理器, 将数据源加入到 Spring 的事务管理器中
+        初始化事务
+        执行数据库操作
+        回滚事务
+        提交事务
+    -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="datasource1"/>
+    </bean>
+
+    <import resource="spring-mybatis.xml"/>
+
+
+</beans>

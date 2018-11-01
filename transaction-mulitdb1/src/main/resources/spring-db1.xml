@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- datasource, 配置具体的数据源 -->
+    <bean id="datasource1" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://127.0.0.1:3306/test"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123456"/>
+    </bean>
+
+    <!--
+        MyBatis
+        <property name="configLocation"  value="classpath:sqlMapConfig.xml"/> 用来指定mybatis的xml配置文件路径
+    -->
+    <bean id="sqlSessionFactory1" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="datasource1"/>
+        <!-- 自动扫描 Mybatis 配置SQL Mapper文件的目录 -->
+        <property name="mapperLocations" value="classpath:mapper1/*.xml"/>
+    </bean>
+
+    <!--
+        接口编程, Mybatis会自动为DAO接口生成实现类
+        MapperScannerConfigurer不需要指定SqlSessionFactory或SqlSessionTemplate. MapperScannerConfigurer将会创建 MapperFactoryBean之后自动装配
+        MapperScannerConfigurer其实和MapperFactoryBean类似, 都是创建代理然后注入到spring中; 区别是前者是自动扫描数据映射器接口, 生成代理类并注入到Spring的容器中
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.transaction.dao1"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1"/>
+    </bean>
+
+    <!--
+        Spring 的 事务管理器, 将数据源加入到 Spring 的事务管理器中
+        初始化事务
+        执行数据库操作
+        回滚事务
+        提交事务
+    -->
+    <bean id="transactionManager1" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="datasource1"/>
+        <!--<qualifier value="txdatasource1"/>-->
+    </bean>
+
+    <!--
+        编程式即采用注解的方式,事务扫描开始(开启注解@Tranctional)
+        如果将@Transactional放到Controller上, 那Spring只会去检查所有Controller上面的注释, 不会再去检查Service上的注释, 所以一般不推荐讲@Transactional放在Controller上, 一般需要放在Service上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="false" />
+        基于JDK动态代理, 可以将@Transactional放置在接口（抽象类或抽象方法）和具体类（实现类或实现方法）上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
+        基于CGLIB类代理, 只能将@Transactional放置在具体类（实现类或实现方法）上
+    -->
+    <tx:annotation-driven transaction-manager="transactionManager1" />
+
+
+</beans>

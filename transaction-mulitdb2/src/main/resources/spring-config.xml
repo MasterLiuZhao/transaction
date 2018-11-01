@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	   http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+	   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--
+        spring就会去自动扫描base-package对应的路径或者该路径的子包下面的java文件,
+        如果扫描到文件中带有@Controller,@Service,@Component,@Repository等这些注解的类,则把这些类注册为bean
+    -->
+    <context:component-scan base-package="com.transaction"/>
+
+    <!--
+        如果没有<mvc:annotation-driven/>，那么所有的Controller可能就没有解析，所有当有请求时候都没有匹配的处理请求类，就都去<mvc:default-servlet-handler/>即default servlet处理了。
+        添加上<mvc:annotation-driven/>后，相应的do请求被Controller处理，而静态资源因为没有相应的Controller就会被default servlet处理
+        <mvc:annotation-driven>会自动注册RequestMappingHandlerMapping与RequestMappingHandlerAdapter两个Bean,这是Spring MVC为@Controller分发请求所必需的
+        要使用spring mvc中的@Controller注解，就必须要配置<mvc:annotation-driven />，否则org.springframework.web.servlet.DispatcherServlet无法找到控制器并把请求分发到控制器
+    -->
+    <mvc:annotation-driven/>
+
+
+    <!-- datasource, 配置具体的数据源 -->
+    <bean id="data_source_1" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://127.0.0.1:3306/test"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123456"/>
+    </bean>
+
+    <!-- datasource, 配置具体的数据源 -->
+    <bean id="data_source_2" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://127.0.0.1:3306/mytest"/>
+        <property name="username" value="root"/>
+        <property name="password" value="123456"/>
+    </bean>
+
+    <!--
+        使用自己实现的 AbstractRoutingDataSource, 默认情况有2个值需要设置 defaultTargetDataSource 和 targetDataSources
+        defaultTargetDataSource 为默认使用的数据源
+        targetDataSources 数据结构是 private Map<Object, Object> targetDataSources; 初始化是key可以为自己定义的值, value为对应的数据源
+            每次使用数据源的时候系统都会调用 AbstractRoutingDataSource 的 determineTargetDataSource() 方法, determineTargetDataSource() 回去调用 determineCurrentLookupKey() 来获取数据源
+            只需要每次使用之前重新设置在配置文件定义的数据源的key即可 <property name="targetDataSources">
+                                                                <map key-type="java.lang.String">
+                                                                    <entry key="data_source_1" value-ref="data_source_1"/>
+                                                                    <entry key="data_source_2" value-ref="data_source_2"/>
+                                                                </map>
+                                                            </property>
+            在需要切换数据源之前加上这段代码即可 DataSourceKeyHolder.setDataSourceKey("data_source_2");
+
+            每个线程在没有设置数据源 DataSourceKeyHolder.setDataSourceKey("data_source_2"); 之前, 使用的数据源都是 defaultTargetDataSource 所指向的数据源, 只有在设置以后才会使用对应设置的数据源
+            而 Spring MVC 每一个 request 请求 controller 都会产生一个独立的线程, 所以每个 request 请求刚开始使用的数据源都是 defaultTargetDataSource 所指向的数据源.
+    -->
+    <bean id="dataSource" class="com.transaction.datasource.MyRountingDataSource">
+        <property name="defaultTargetDataSource" ref="data_source_1"/>
+        <property name="targetDataSources">
+            <map key-type="java.lang.String">
+                <entry key="data_source_1" value-ref="data_source_1"/>
+                <entry key="data_source_2" value-ref="data_source_2"/>
+            </map>
+        </property>
+    </bean>
+
+    <!--
+        MyBatis
+        <property name="configLocation"  value="classpath:sqlMapConfig.xml"/> 用来指定mybatis的xml配置文件路径
+    -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 自动扫描 Mybatis 配置SQL Mapper文件的目录 -->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+    </bean>
+
+    <!--
+        接口编程, Mybatis会自动为DAO接口生成实现类
+        MapperScannerConfigurer不需要指定SqlSessionFactory或SqlSessionTemplate. MapperScannerConfigurer将会创建 MapperFactoryBean之后自动装配
+        MapperScannerConfigurer其实和MapperFactoryBean类似, 都是创建代理然后注入到spring中; 区别是前者是自动扫描数据映射器接口, 生成代理类并注入到Spring的容器中
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.transaction.dao"/>
+    </bean>
+
+    <!--
+        Spring 的 事务管理器, 将数据源加入到 Spring 的事务管理器中
+        初始化事务
+        执行数据库操作
+        回滚事务
+        提交事务
+    -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+
+    <!--
+        编程式即采用注解的方式,事务扫描开始(开启注解@Tranctional)
+        如果将@Transactional放到Controller上, 那Spring只会去检查所有Controller上面的注释, 不会再去检查Service上的注释, 所以一般不推荐讲@Transactional放在Controller上, 一般需要放在Service上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="false" />
+        基于JDK动态代理, 可以将@Transactional放置在接口（抽象类或抽象方法）和具体类（实现类或实现方法）上
+
+        <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
+        基于CGLIB类代理, 只能将@Transactional放置在具体类（实现类或实现方法）上
+    -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+
+    <!-- 主要切面操作类 -->
+    <bean id="dataSourceSwitchHandler" class="com.transaction.datasource.DataSourceSwitchHandler"/>
+
+    <!--
+        Spring 主要的事务配置 tx:advice
+    -->
+    <tx:advice id="transactionServiceAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="query*" read-only="true"/>
+            <tx:method name="get*" read-only="true"/>
+            <tx:method name="insert*"/> <!-- isolation="DEFAULT" propagation="REQUIRED" rollback-for="Exception" -->
+            <tx:method name="update*"/> <!-- isolation="DEFAULT" propagation="REQUIRED" rollback-for="Exception" -->
+            <tx:method name="delete*"/> <!-- isolation="DEFAULT" propagation="REQUIRED" rollback-for="Exception" -->
+        </tx:attributes>
+    </tx:advice>
+
+    <!--
+        切面配置
+    -->
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="transactionServicePointCut" expression="execution(* com.transaction.service.*.*(..))"/>
+
+        <aop:advisor advice-ref="transactionServiceAdvice" pointcut-ref="transactionServicePointCut" order="1"/>
+
+        <aop:aspect ref="dataSourceSwitchHandler" order="0">
+            <aop:before method="doBefore" pointcut-ref="transactionServicePointCut"/>
+            <aop:after method="doAfter" pointcut-ref="transactionServicePointCut"/>
+        </aop:aspect>
+
+    </aop:config>
+
+
+</beans>

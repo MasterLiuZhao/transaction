@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	   http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+	   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+	   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--
+        spring就会去自动扫描base-package对应的路径或者该路径的子包下面的java文件,
+        如果扫描到文件中带有@Controller,@Service,@Component,@Repository等这些注解的类,则把这些类注册为bean
+    -->
+    <context:component-scan base-package="com.transaction"/>
+
+    <!--
+        如果没有<mvc:annotation-driven/>，那么所有的Controller可能就没有解析，所有当有请求时候都没有匹配的处理请求类，就都去<mvc:default-servlet-handler/>即default servlet处理了。
+        添加上<mvc:annotation-driven/>后，相应的do请求被Controller处理，而静态资源因为没有相应的Controller就会被default servlet处理
+        <mvc:annotation-driven>会自动注册RequestMappingHandlerMapping与RequestMappingHandlerAdapter两个Bean,这是Spring MVC为@Controller分发请求所必需的
+        要使用spring mvc中的@Controller注解，就必须要配置<mvc:annotation-driven />，否则org.springframework.web.servlet.DispatcherServlet无法找到控制器并把请求分发到控制器
+    -->
+    <mvc:annotation-driven/>
+
+
+    <!-- datasource, 配置具体的数据源 -->
+    <bean id="data_source_1" class="com.atomikos.jdbc.AtomikosDataSourceBean" destroy-method="close">
+        <property name="uniqueResourceName" value="data_source_1"/>
+        <property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource"/>
+        <property name="xaProperties">
+            <props>
+                <prop key="driverClassName">com.mysql.cj.jdbc.Driver</prop>
+                <prop key="url">jdbc:mysql://127.0.0.1:3306/test</prop>
+                <prop key="username">root</prop>
+                <prop key="password">123456</prop>
+                <prop key="initialSize">1</prop>
+                <prop key="maxActive">5</prop> <!-- 若不配置则代码执行"{dataSource-1} inited"此处停止  -->
+                <prop key="minIdle">0</prop>
+                <prop key="maxWait">100</prop>
+                <prop key="validationQuery">select 1</prop>
+                <prop key="testOnBorrow">false</prop>
+                <prop key="testOnReturn">false</prop>
+                <prop key="testWhileIdle">true</prop>
+                <prop key="removeAbandoned">true</prop>
+                <prop key="removeAbandonedTimeout">1800</prop>
+                <prop key="logAbandoned">true</prop>
+                <prop key="filters">mergeStat</prop>
+            </props>
+        </property>
+        <property name="poolSize" value="1" />
+        <property name="minPoolSize" value="1"/>
+        <property name="maxPoolSize" value="10"/>
+        <property name="borrowConnectionTimeout" value="60"/>
+        <property name="reapTimeout" value="20"/>
+        <property name="maxIdleTime" value="60"/>
+        <property name="maintenanceInterval" value="60"/>
+        <property name="loginTimeout" value="60"/>
+        <property name="testQuery" value="select 1"/>
+    </bean>
+
+    <!-- datasource, 配置具体的数据源 -->
+    <bean id="data_source_2" class="com.atomikos.jdbc.AtomikosDataSourceBean" destroy-method="close">
+        <property name="uniqueResourceName" value="data_source_2"/>
+        <property name="xaDataSourceClassName" value="com.alibaba.druid.pool.xa.DruidXADataSource"/>
+        <property name="xaProperties">
+            <props>
+                <prop key="driverClassName">com.mysql.cj.jdbc.Driver</prop>
+                <prop key="url">jdbc:mysql://127.0.0.1:3306/mytest</prop>
+                <prop key="username">root</prop>
+                <prop key="password">123456</prop>
+                <prop key="initialSize">1</prop>
+                <prop key="maxActive">5</prop> <!-- 若不配置则代码执行"{dataSource-1} inited"此处停止  -->
+                <prop key="minIdle">0</prop>
+                <prop key="maxWait">100</prop>
+                <prop key="validationQuery">select 1</prop>
+                <prop key="testOnBorrow">false</prop>
+                <prop key="testOnReturn">false</prop>
+                <prop key="testWhileIdle">true</prop>
+                <prop key="removeAbandoned">true</prop>
+                <prop key="removeAbandonedTimeout">1800</prop>
+                <prop key="logAbandoned">true</prop>
+                <prop key="filters">mergeStat</prop>
+            </props>
+        </property>
+        <property name="poolSize" value="1" />
+        <property name="minPoolSize" value="1"/>
+        <property name="maxPoolSize" value="10"/>
+        <property name="borrowConnectionTimeout" value="60"/>
+        <property name="reapTimeout" value="20"/>
+        <property name="maxIdleTime" value="60"/>
+        <property name="maintenanceInterval" value="60"/>
+        <property name="loginTimeout" value="60"/>
+        <property name="testQuery" value="select 1"/>
+    </bean>
+
+    <!--
+        MyBatis
+        <property name="configLocation"  value="classpath:sqlMapConfig.xml"/> 用来指定mybatis的xml配置文件路径
+    -->
+    <bean id="sqlSessionFactory1" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="data_source_1"/>
+        <!-- 自动扫描 Mybatis 配置SQL Mapper文件的目录 -->
+        <property name="mapperLocations" value="classpath:mapper1/*.xml"/>
+    </bean>
+
+    <!--
+        MyBatis
+        <property name="configLocation"  value="classpath:sqlMapConfig.xml"/> 用来指定mybatis的xml配置文件路径
+    -->
+    <bean id="sqlSessionFactory2" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="data_source_2"/>
+        <!-- 自动扫描 Mybatis 配置SQL Mapper文件的目录 -->
+        <property name="mapperLocations" value="classpath:mapper2/*.xml"/>
+    </bean>
+
+    <!--
+        接口编程, Mybatis会自动为DAO接口生成实现类
+        MapperScannerConfigurer不需要指定SqlSessionFactory或SqlSessionTemplate. MapperScannerConfigurer将会创建 MapperFactoryBean之后自动装配
+        MapperScannerConfigurer其实和MapperFactoryBean类似, 都是创建代理然后注入到spring中; 区别是前者是自动扫描数据映射器接口, 生成代理类并注入到Spring的容器中
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.transaction.dao1"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory1"/>
+    </bean>
+
+    <!--
+        接口编程, Mybatis会自动为DAO接口生成实现类
+        MapperScannerConfigurer不需要指定SqlSessionFactory或SqlSessionTemplate. MapperScannerConfigurer将会创建 MapperFactoryBean之后自动装配
+        MapperScannerConfigurer其实和MapperFactoryBean类似, 都是创建代理然后注入到spring中; 区别是前者是自动扫描数据映射器接口, 生成代理类并注入到Spring的容器中
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.transaction.dao2"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory2"/>
+    </bean>
+
+
+    <bean id="atomikosTransactionManager" class="com.atomikos.icatch.jta.UserTransactionManager" init-method="init" destroy-method="close">
+        <property name="forceShutdown" value="true"/>
+    </bean>
+
+    <bean id="atomikosUserTransaction" class="com.atomikos.icatch.jta.J2eeUserTransaction">
+        <property name="transactionTimeout" value="300" />
+    </bean>
+
+
+    <bean id="transactionManager" class="org.springframework.transaction.jta.JtaTransactionManager">
+        <property name="transactionManager" ref="atomikosTransactionManager"/>
+        <property name="userTransaction" ref="atomikosUserTransaction"/>
+        <property name="allowCustomIsolationLevels" value="true"/>
+    </bean>
+
+    <aop:aspectj-autoproxy />
+
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="get*" read-only="true"/>
+            <tx:method name="insert*"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="transactionServicePointCut" expression="execution(* com.transaction.service.*.*(..))"/>
+
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="transactionServicePointCut"/>
+    </aop:config>
+
+
+</beans>

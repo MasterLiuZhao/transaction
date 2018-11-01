@@ -1,0 +1,50 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    在Mybatis中, 映射文件中的 namespace 是用于绑定 Dao 接口的, 即面向接口编程
+    当你的 namespace 绑定接口后, 你可以不用写接口实现类, Mybatis会通过该绑定自动帮你找到对应要执行的SQL语句
+    DAO接口中的方法名与映射文件中的SQL语句的ID一一对应
+-->
+<mapper namespace="com.transaction.dao1.TransactionDao">
+
+    <resultMap id="testAMap" type="com.transaction.pojo.TestA">
+        <id column="customerID" property="customerID"/>
+        <result column="customerNM" property="customerNM"/>
+        <result column="sex" property="sex"/>
+        <result column="age" property="age"/>
+        <result column="aa" property="aa"/>
+    </resultMap>
+
+    <resultMap id="testBMap" type="com.transaction.pojo.TestB">
+        <id column="applyBillID" property="applyBillID"/>
+        <result column="billStauts" property="billStauts"/>
+        <result column="getUser" property="getUser"/>
+    </resultMap>
+
+    <select id="getTestA" resultMap="testAMap">
+        select * from test_a
+    </select>
+
+    <select id="getTestB" resultMap="testBMap">
+        select * from test_b
+    </select>
+
+    <insert id="insertTestA">
+        insert into test_a (customerID, customerNM, sex, age, aa)
+          values (#{customerID}, #{customerNM}, #{sex}, #{age}, #{aa})
+    </insert>
+
+    <insert id="insertTestB">
+        insert into test_b (applyBillID, billStauts, getUser)
+          values (#{applyBillID}, #{billStauts}, #{getUser})
+    </insert>
+
+    <!--
+    <insert id="insert">
+        insert into users (id, name, funkyNumber, roundingMode) values (#{id}, #{name}, #{funkyNumber}, #{roundingMode})
+    </insert>
+    -->
+
+</mapper>
